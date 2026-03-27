@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAZE // BACKTRACK</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+  <h1>MAZE // BACKTRACK</h1>
+  <p>Backtracking Pathfinding Visualizer</p>
+</header>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR (docked desktop / slide-in drawer mobile) ── -->
+  <nav class="sidebar" aria-label="Controls">
+
+    <div class="panel">
+      <div class="panel-title">// TOOLS</div>
+      <div class="tool-grid">
+        <button class="tool-btn active" id="tool-wall"  onclick="setTool('wall')">
+          <span class="dot" style="background:#1a3a5c; border:1px solid #2a5a8c;"></span>
+          WALL
+        </button>
+        <button class="tool-btn" id="tool-erase" onclick="setTool('erase')">
+          <span class="dot" style="background:#0a1520; border:1px solid #1a2d45;"></span>
+          ERASE
+        </button>
+        <button class="tool-btn" id="tool-start" onclick="setTool('start')">
+          <span class="dot" style="background:#00ff9d;"></span>
+          SET START
+        </button>
+        <button class="tool-btn" id="tool-end"   onclick="setTool('end')">
+          <span class="dot" style="background:#ff2d6b;"></span>
+          SET END
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">// CONTROLS</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>SPEED</span>
+            <span id="speed-val">50ms</span>
+          </div>
+          <input type="range" id="speed" min="5" max="200" value="50"
+                 oninput="document.getElementById('speed-val').textContent = this.value + 'ms'">
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>GRID SIZE</span>
+            <span id="size-val">20</span>
+          </div>
+          <input type="range" id="gridsize" min="10" max="40" value="20"
+                 oninput="onResize(+this.value)">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">// ACTIONS</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="action-btn btn-solve"  id="btn-solve"  onclick="solve()">▶ SOLVE</button>
+        <button class="action-btn btn-random" id="btn-random" onclick="generateMaze()">⚡ RANDOM MAZE</button>
+        <button class="action-btn btn-clear"  id="btn-clear"  onclick="clearGrid()">✕ CLEAR</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">// LEGEND</div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#00ff9d; box-shadow:0 0 6px #00ff9d;"></div>
+          START / PATH
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#ff2d6b; box-shadow:0 0 6px #ff2d6b;"></div>
+          END
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#ffe566;"></div>
+          EXPLORING
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:rgba(192,57,43,0.55); border:1px solid #c0392b;"></div>
+          DEAD END
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#1a3a5c; border:1px solid #2a5a8c;"></div>
+          WALL
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden on mobile — status shown in the strip above the action bar instead -->
+    <div class="panel panel-status-mobile">
+      <div class="panel-title">// STATUS</div>
+      <div id="status">READY — DRAW YOUR MAZE</div>
+    </div>
+
+  </nav>
+
+  <!-- ── MAZE CANVAS ── -->
+  <main class="maze-wrap">
+    <canvas id="maze-canvas"></canvas>
+    <div class="maze-meta" id="maze-meta">20 × 20 GRID · CLICK TO DRAW WALLS</div>
+  </main>
+
+</div>
+
+<!-- Mobile: dark overlay behind the open drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<!-- Mobile: status strip sitting just above the action bar -->
+<div class="mobile-status" id="mobile-status">READY — DRAW YOUR MAZE</div>
+
+<!-- Mobile: fixed bottom action bar -->
+<div class="mobile-bar">
+  <button class="mb-btn primary" id="mb-solve"  onclick="solve()">▶ SOLVE</button>
+  <button class="mb-btn"         id="mb-random" onclick="generateMaze()">⚡ RANDOM</button>
+  <button class="mb-btn"         id="mb-clear"  onclick="clearGrid()">✕ CLEAR</button>
+  <button class="mb-btn"         id="mb-menu"   onclick="toggleDrawer()">☰ TOOLS</button>
+</div>
+
+<!-- Scripts: load order matters — Model → View → Controller → App -->
+<script src="js/model.js"></script>
+<script src="js/view.js"></script>
+<script src="js/controller.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
