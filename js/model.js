@@ -32,7 +32,6 @@ const Model = (() => {
 
   // ── Grid initialisation ───────────────────────────────────────────
   function initGrid() {
-    state.solving = false;
     state.grid = Array.from(
       { length: state.ROWS },
       () => new Array(state.COLS).fill(EMPTY)
@@ -78,16 +77,13 @@ const Model = (() => {
         grid[r][c] = EMPTY;
         break;
       case 'start':
-        // If we're mid-solve, moving the start point is a major change.
-        // The old cell should revert to EMPTY (or its search state if we were tracking it).
-        // For simplicity, we just set to EMPTY and let the controller handle it.
-        grid[state.startR][state.startC] = EMPTY;
+        grid[startR][startC] = EMPTY;
         state.startR = r;
         state.startC = c;
         grid[r][c]   = S_START;
         break;
       case 'end':
-        grid[state.endR][state.endC] = EMPTY;
+        grid[endR][endC] = EMPTY;
         state.endR = r;
         state.endC = c;
         grid[r][c]   = S_END;
