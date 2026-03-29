@@ -348,6 +348,7 @@ const Controller = (() => {
   // ── Bootstrap ────────────────────────────────────────────────────
   function init() {
     Model.setSize(20);
+    Model.initGrid();
     View.resizeCanvas();
     generateMaze();
   }

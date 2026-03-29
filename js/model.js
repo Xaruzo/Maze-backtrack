@@ -131,6 +131,7 @@ const Model = (() => {
 
   // ── Strip solve-state colours before a new solve run ─────────────
   function cleanSolveState() {
+    if (!state.grid || state.grid.length === 0) return;
     const solveStates = [S_VISITING, S_DEAD, S_PATH];
     for (let r = 0; r < state.ROWS; r++) {
       for (let c = 0; c < state.COLS; c++) {
