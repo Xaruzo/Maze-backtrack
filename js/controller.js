@@ -183,9 +183,7 @@ const Controller = (() => {
     Model.state.paused    = false;
     Model.cleanSolveState();
 
-    // Ensure start cell is marked correctly after cleanSolveState
     const { grid, startR, startC, endR, endC, ROWS, COLS } = Model.state;
-    grid[startR][startC] = Model.S_START;
 
     View.render();
     View.resetStats();
@@ -293,9 +291,17 @@ const Controller = (() => {
         View.setStatus('✗ NO PATH EXISTS', 'fail');
       }
 
-    } catch (_) {
-      // Cancelled mid-solve — callers (clearGrid / generateMaze / onResize)
-      // will reset state after their debounce timeout.
+    } catch (err) {
+      // Cancelled mid-solve — reset state immediately
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+      View.setSolveButtonState('solve');
+      View.setControlsLocked(false);
+
+      if (err.message === 'cancelled') {
+        View.setStatus('SOLVE CANCELLED', 'fail');
+      }
     }
   }
 

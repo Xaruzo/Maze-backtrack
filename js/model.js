@@ -48,6 +48,8 @@ const Model = (() => {
     state.startC = 1;
     state.endR   = state.ROWS - 2;
     state.endC   = state.COLS - 2;
+    state.grid[state.startR][state.startC] = S_START;
+    state.grid[state.endR][state.endC]     = S_END;
   }
 
   // ── Resize — recalculates cell pixel size ─────────────────────────
@@ -76,15 +78,15 @@ const Model = (() => {
         break;
       case 'start':
         grid[startR][startC] = EMPTY;
-        if (grid[r][c] === WALL) grid[r][c] = EMPTY;
         state.startR = r;
         state.startC = c;
+        grid[r][c]   = S_START;
         break;
       case 'end':
         grid[endR][endC] = EMPTY;
-        if (grid[r][c] === WALL) grid[r][c] = EMPTY;
         state.endR = r;
         state.endC = c;
+        grid[r][c]   = S_END;
         break;
       default:
         return false;
@@ -94,15 +96,14 @@ const Model = (() => {
 
   // ── Strip solve-state colours before a new solve run ─────────────
   function cleanSolveState() {
-    const solveStates = [S_VISITING, S_DEAD, S_PATH, S_START];
+    const solveStates = [S_VISITING, S_DEAD, S_PATH];
     for (let r = 0; r < state.ROWS; r++) {
       for (let c = 0; c < state.COLS; c++) {
         if (solveStates.includes(state.grid[r][c])) state.grid[r][c] = EMPTY;
       }
     }
-    if (state.grid[state.endR][state.endC] !== WALL) {
-      state.grid[state.endR][state.endC] = S_END;
-    }
+    state.grid[state.startR][state.startC] = S_START;
+    state.grid[state.endR][state.endC]     = S_END;
   }
 
   // ── Randomised DFS perfect-maze generator ─────────────────────────
@@ -152,7 +153,8 @@ const Model = (() => {
     state.startC = 1;
     state.endR   = state.ROWS - 2;
     state.endC   = state.COLS - 2;
-    state.grid[state.endR][state.endC] = EMPTY;
+    state.grid[state.startR][state.startC] = S_START;
+    state.grid[state.endR][state.endC]     = S_END;
 
     // Ensure end cell is reachable
     if (
