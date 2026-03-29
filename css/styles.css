@@ -487,11 +487,11 @@ kbd {
     position: fixed;
     top: 0; left: 0;
     width: min(280px, 85vw);
-    height: 100vh;
+    height: 100dvh;      /* Dynamic viewport height for mobile browsers */
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     z-index: 300;
-    padding: 16px 12px;
+    padding: 16px 12px 60px 12px; /* Extra bottom padding for legend visibility */
     gap: 10px;
   }
   .sidebar.open { transform: translateX(0); }
