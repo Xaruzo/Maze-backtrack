@@ -65,32 +65,67 @@ const Model = (() => {
   // ── Apply the active drawing tool at (r, c) ───────────────────────
   // Returns true if something changed, false if the action was blocked.
   function applyTool(r, c) {
-    const { grid, startR, startC, endR, endC } = state;
-    if (r < 0 || r >= state.ROWS || c < 0 || c >= state.COLS) return false;
+    const { grid, startR, startC, endR, endC, COLS, ROWS } = state;
 
-    switch (state.tool) {
+    // 1. Boundary check
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+
+    // 2. Do not modify border walls
+    if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) return false;
+
+    const t = state.tool;
+    const isStart = r === startR && c === startC;
+    const isEnd   = r === endR   && c === endC;
+
+    switch (t) {
       case 'wall':
-        if ((r === startR && c === startC) || (r === endR && c === endC)) return false;
+        // Cannot place a wall on start or end points
+        if (isStart || isEnd) return false;
+        if (grid[r][c] === WALL) return false;
         grid[r][c] = WALL;
         break;
+
       case 'erase':
+        // Erase anything that isn't start or end
+        if (isStart || isEnd) return false;
+        if (grid[r][c] === EMPTY) return false;
         grid[r][c] = EMPTY;
         break;
+
       case 'start':
+        // If moving start to the current end position, swap them or block?
+        // Let's block it for simplicity.
+        if (isEnd) return false;
+        if (isStart) return false;
+
+        // Clear old start point from grid
         grid[startR][startC] = EMPTY;
+        // Set new start position
         state.startR = r;
         state.startC = c;
         grid[r][c]   = S_START;
+        // After placing start, switch back to wall tool
+        state.tool = 'wall';
         break;
+
       case 'end':
+        if (isStart) return false;
+        if (isEnd) return false;
+
+        // Clear old end point from grid
         grid[endR][endC] = EMPTY;
+        // Set new end position
         state.endR = r;
         state.endC = c;
         grid[r][c]   = S_END;
+        // After placing end, switch back to wall tool
+        state.tool = 'wall';
         break;
+
       default:
         return false;
     }
+
     return true;
   }
 

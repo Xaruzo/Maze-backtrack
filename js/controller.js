@@ -30,16 +30,15 @@ const Controller = (() => {
     const { r, c } = View.cellAt(e);
     const t = Model.state.tool;
 
+    // Only allow dragging for wall and erase tools
     if (isDrag && t !== 'wall' && t !== 'erase') return;
 
     const changed = Model.applyTool(r, c);
     if (!changed) return;
 
-    if (t === 'start' || t === 'end') {
-      Model.state.tool = 'wall';
-      View.setActiveTool('wall');
-    }
-
+    // Always update active tool in view since Model.applyTool 
+    // might have switched it back to 'wall' after placing start/end.
+    View.setActiveTool(Model.state.tool);
     View.render();
   }
 
@@ -327,12 +326,7 @@ const Controller = (() => {
         break;
 
       case 'Escape':
-        if (Model.state.solving) {
-          cancelSolve();
-          // After cancelling, we want to reset the UI state immediately
-          // clearGrid() or generateMaze() usually do this via timeout, 
-          // but for Esc we can just let the solve loop catch the error.
-        }
+        if (Model.state.solving) cancelSolve();
         break;
 
       // Tool shortcuts: 1 = wall, 2 = erase, 3 = start, 4 = end
