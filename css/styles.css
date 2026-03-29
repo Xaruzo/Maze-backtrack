@@ -434,14 +434,15 @@ kbd {
   display: none;
   position: fixed;
   bottom: 60px; left: 0; right: 0;
-  padding: 4px 12px;
-  background: rgba(13,21,32,0.95);
+  padding: 5px 12px;
+  background: var(--panel);
   border-top: 1px solid var(--border);
   font-size: 0.65rem;
   letter-spacing: 0.06em;
   color: var(--dim);
   z-index: 150;
   text-align: center;
+  min-height: 28px;
 }
 .mobile-status.solving { color: var(--current); }
 .mobile-status.success { color: var(--start); }
@@ -453,8 +454,20 @@ kbd {
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 680px) {
   body {
-    padding: 12px 8px 68px 8px;
+    padding: 12px 8px 0 8px;
+    height: 100dvh;
+    overflow: hidden;    /* body itself never scrolls */
     align-items: center;
+  }
+
+  /* layout is the scrollable region — stops naturally at the fixed bars */
+  .layout {
+    flex: 1;
+    min-height: 0;       /* lets flex child shrink below content size */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding-bottom: 20px; /* normal padding instead of huge gap */
   }
 
   header { margin-bottom: 12px; }
@@ -491,10 +504,24 @@ kbd {
   #maze-canvas { max-width: 100%; }
   .maze-meta { font-size: 0.6rem; }
 
-  /* Show mobile-only elements */
-  .mobile-bar    { display: flex; }
+  /* Show mobile-only elements and place them in the flex flow */
+  .mobile-bar {
+    display: flex;
+    position: relative;
+    bottom: auto;
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .mobile-status {
+    display: block;
+    position: relative;
+    bottom: auto;
+    width: 100%;
+    flex-shrink: 0;
+  }
+
   .menu-toggle   { display: flex; }
-  .mobile-status { display: block; }
 
   /* Hide desktop-only panels on mobile */
   .panel-status-mobile { display: none; }
