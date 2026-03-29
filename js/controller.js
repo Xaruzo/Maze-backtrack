@@ -27,6 +27,13 @@ const Controller = (() => {
   function handlePointer(e, isDrag = false) {
     if (Model.state.solving && !Model.state.paused) return;
 
+    // If the user modifies the grid while solving is paused,
+    // the current solve path is no longer valid. Reset it.
+    if (Model.state.solving && Model.state.paused) {
+      cancelSolve();
+      resetSolveUI('GRID MODIFIED — SOLVE RESET');
+    }
+
     const { r, c } = View.cellAt(e);
     const t = Model.state.tool;
 
@@ -74,24 +81,29 @@ const Controller = (() => {
     Model.state.paused    = false;
   }
 
+  // ── Reset solve UI and state after cancellation ──────────────────
+  function resetSolveUI(statusMsg = 'READY — DRAW YOUR MAZE') {
+    Model.state.solving   = false;
+    Model.state.paused    = false;
+    Model.state.cancelled = false;
+    View.setSolveButtonState('solve');
+    View.setControlsLocked(false);
+    Model.cleanSolveState();
+    View.render();
+    View.setStatus(statusMsg);
+    View.resetStats();
+  }
+
   // ── Grid size slider ──────────────────────────────────────────────
   function onResize(n) {
     if (Model.state.solving) cancelSolve();
 
     const doResize = () => {
-      Model.state.solving   = false;
-      Model.state.paused    = false;
-      Model.state.cancelled = false;
-
-      View.setSolveButtonState('solve');
-      View.setControlsLocked(false);
-
+      resetSolveUI('GRID RESIZED — PRESS SOLVE');
       Model.setSize(n);
-      View.resizeCanvas();
       Model.generateMaze();
+      View.resizeCanvas();
       View.render();
-      View.setStatus('GRID RESIZED — PRESS SOLVE');
-      View.resetStats();
     };
 
     if (Model.state.solving) setTimeout(doResize, 60);
@@ -103,15 +115,9 @@ const Controller = (() => {
     if (Model.state.solving) cancelSolve();
 
     const doClear = () => {
-      Model.state.solving   = false;
-      Model.state.paused    = false;
-      Model.state.cancelled = false;
-      View.setSolveButtonState('solve');
-      View.setControlsLocked(false);
+      resetSolveUI();
       Model.initGrid();
       View.render();
-      View.setStatus('READY — DRAW YOUR MAZE');
-      View.resetStats();
     };
 
     if (Model.state.solving) setTimeout(doClear, 60);
@@ -123,15 +129,9 @@ const Controller = (() => {
     if (Model.state.solving) cancelSolve();
 
     const doGen = () => {
-      Model.state.solving   = false;
-      Model.state.paused    = false;
-      Model.state.cancelled = false;
-      View.setSolveButtonState('solve');
-      View.setControlsLocked(false);
+      resetSolveUI('RANDOM MAZE GENERATED — PRESS SOLVE');
       Model.generateMaze();
       View.render();
-      View.setStatus('RANDOM MAZE GENERATED — PRESS SOLVE');
-      View.resetStats();
     };
 
     if (Model.state.solving) setTimeout(doGen, 60);
