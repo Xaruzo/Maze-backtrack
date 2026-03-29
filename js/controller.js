@@ -27,25 +27,34 @@ const Controller = (() => {
   function handlePointer(e, isDrag = false) {
     if (Model.state.solving && !Model.state.paused) return;
 
-    // If the user modifies the grid while solving is paused,
-    // the current solve path is no longer valid. Reset it.
-    if (Model.state.solving && Model.state.paused) {
-      cancelSolve();
-      resetSolveUI('GRID MODIFIED — SOLVE RESET');
-    }
-
     const { r, c } = View.cellAt(e);
     const t = Model.state.tool;
 
-    // Only allow dragging for wall and erase tools
     if (isDrag && t !== 'wall' && t !== 'erase') return;
 
     const changed = Model.applyTool(r, c);
     if (!changed) return;
 
-    // Always update active tool in view since Model.applyTool 
-    // might have switched it back to 'wall' after placing start/end.
-    View.setActiveTool(Model.state.tool);
+    if (t === 'start' || t === 'end') {
+      // If a solve was paused, cancel it — the captured start/end coords
+      // inside the async loop are now stale and can't be patched in-flight.
+      // Cancel, clean the trail, and let the user press Solve again.
+      if (Model.state.solving) {
+        Model.state.cancelled = true;
+        Model.state.paused    = false;
+        // Give the async catch-block ~100 ms to finish resetting solving/UI,
+        // then clean the leftover trail and re-stamp the new start/end cells.
+        setTimeout(() => {
+          Model.cleanSolveState();   // clears visiting/dead/path, re-stamps S/E
+          View.render();
+          View.setStatus('START/END MOVED — PRESS SOLVE AGAIN');
+          View.resetStats();
+        }, 150);
+      }
+      Model.state.tool = 'wall';
+      View.setActiveTool('wall');
+    }
+
     View.render();
   }
 
@@ -81,29 +90,24 @@ const Controller = (() => {
     Model.state.paused    = false;
   }
 
-  // ── Reset solve UI and state after cancellation ──────────────────
-  function resetSolveUI(statusMsg = 'READY — DRAW YOUR MAZE') {
-    Model.state.solving   = false;
-    Model.state.paused    = false;
-    Model.state.cancelled = false;
-    View.setSolveButtonState('solve');
-    View.setControlsLocked(false);
-    Model.cleanSolveState();
-    View.render();
-    View.setStatus(statusMsg);
-    View.resetStats();
-  }
-
   // ── Grid size slider ──────────────────────────────────────────────
   function onResize(n) {
     if (Model.state.solving) cancelSolve();
 
     const doResize = () => {
-      resetSolveUI('GRID RESIZED — PRESS SOLVE');
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+
+      View.setSolveButtonState('solve');
+      View.setControlsLocked(false);
+
       Model.setSize(n);
-      Model.generateMaze();
       View.resizeCanvas();
+      Model.generateMaze();
       View.render();
+      View.setStatus('GRID RESIZED — PRESS SOLVE');
+      View.resetStats();
     };
 
     if (Model.state.solving) setTimeout(doResize, 60);
@@ -115,9 +119,15 @@ const Controller = (() => {
     if (Model.state.solving) cancelSolve();
 
     const doClear = () => {
-      resetSolveUI();
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+      View.setSolveButtonState('solve');
+      View.setControlsLocked(false);
       Model.initGrid();
       View.render();
+      View.setStatus('READY — DRAW YOUR MAZE');
+      View.resetStats();
     };
 
     if (Model.state.solving) setTimeout(doClear, 60);
@@ -129,9 +139,15 @@ const Controller = (() => {
     if (Model.state.solving) cancelSolve();
 
     const doGen = () => {
-      resetSolveUI('RANDOM MAZE GENERATED — PRESS SOLVE');
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+      View.setSolveButtonState('solve');
+      View.setControlsLocked(false);
       Model.generateMaze();
       View.render();
+      View.setStatus('RANDOM MAZE GENERATED — PRESS SOLVE');
+      View.resetStats();
     };
 
     if (Model.state.solving) setTimeout(doGen, 60);
@@ -182,7 +198,7 @@ const Controller = (() => {
     Model.state.paused    = false;
     Model.cleanSolveState();
 
-    const { grid, ROWS, COLS } = Model.state;
+    const { grid, startR, startC, endR, endC, ROWS, COLS } = Model.state;
 
     View.render();
     View.resetStats();
@@ -199,11 +215,11 @@ const Controller = (() => {
 
     // Per-cell visited flags
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
-    visited[Model.state.startR][Model.state.startC] = true;
+    visited[startR][startC] = true;
 
     // Stack frames: { r, c, dir }
     // `dir` is the index of the next neighbour direction to try (0–3).
-    const stack = [{ r: Model.state.startR, c: Model.state.startC, dir: 0 }];
+    const stack = [{ r: startR, c: startC, dir: 0 }];
 
     let steps    = 1;   // cells explored (start counts)
     let deadEnds = 0;
@@ -214,8 +230,8 @@ const Controller = (() => {
       while (stack.length > 0) {
         const frame = stack[stack.length - 1];
         const { r, c } = frame;
-        const isStart = r === Model.state.startR && c === Model.state.startC;
-        const isEnd   = r === Model.state.endR   && c === Model.state.endC;
+        const isStart = r === startR && c === startC;
+        const isEnd   = r === endR   && c === endC;
 
         // Render cell as "currently visiting"
         if (!isStart && !isEnd) grid[r][c] = Model.S_VISITING;
@@ -263,8 +279,8 @@ const Controller = (() => {
 
       if (found) {
         for (const { r, c } of stack) {
-          const isSt = r === Model.state.startR && c === Model.state.startC;
-          const isEn = r === Model.state.endR   && c === Model.state.endC;
+          const isSt = r === startR && c === startC;
+          const isEn = r === endR   && c === endC;
           if (!isSt && !isEn) grid[r][c] = Model.S_PATH;
           View.render();
           await makeDelay(0.35);   // ~35 % of exploration speed
@@ -326,7 +342,12 @@ const Controller = (() => {
         break;
 
       case 'Escape':
-        if (Model.state.solving) cancelSolve();
+        if (Model.state.solving) {
+          cancelSolve();
+          // After cancelling, we want to reset the UI state immediately
+          // clearGrid() or generateMaze() usually do this via timeout, 
+          // but for Esc we can just let the solve loop catch the error.
+        }
         break;
 
       // Tool shortcuts: 1 = wall, 2 = erase, 3 = start, 4 = end
@@ -348,7 +369,6 @@ const Controller = (() => {
   // ── Bootstrap ────────────────────────────────────────────────────
   function init() {
     Model.setSize(20);
-    Model.initGrid();
     View.resizeCanvas();
     generateMaze();
   }
