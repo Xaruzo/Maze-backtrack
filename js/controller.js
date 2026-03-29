@@ -194,17 +194,20 @@ const Controller = (() => {
     View.setStatus('SCANNING...', 'solving');
 
     const startTime = Date.now();
+    const { ROWS, COLS } = Model.state;
+    const initialStartR = Model.state.startR;
+    const initialStartC = Model.state.startC;
 
     const DR = [-1, 1,  0, 0];
     const DC = [ 0, 0, -1, 1];
 
     // Per-cell visited flags
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
-    visited[startR][startC] = true;
+    visited[initialStartR][initialStartC] = true;
 
     // Stack frames: { r, c, dir }
     // `dir` is the index of the next neighbour direction to try (0–3).
-    const stack = [{ r: startR, c: startC, dir: 0 }];
+    const stack = [{ r: initialStartR, c: initialStartC, dir: 0 }];
 
     let steps    = 1;   // cells explored (start counts)
     let deadEnds = 0;
@@ -213,13 +216,21 @@ const Controller = (() => {
     try {
       // ── Main DFS loop ──────────────────────────────────────────────
       while (stack.length > 0) {
+        // If the start point has moved, the current path (stack) is invalid.
+        if (Model.state.startR !== initialStartR || Model.state.startC !== initialStartC) {
+          throw new Error('cancelled');
+        }
+
         const frame = stack[stack.length - 1];
         const { r, c } = frame;
-        const isStart = r === startR && c === startC;
-        const isEnd   = r === endR   && c === endC;
+        const isStart = r === Model.state.startR && c === Model.state.startC;
+        const isEnd   = r === Model.state.endR   && c === Model.state.endC;
 
         // Render cell as "currently visiting"
+        // (Don't overwrite start/end markers)
+        const { grid } = Model.state;
         if (!isStart && !isEnd) grid[r][c] = Model.S_VISITING;
+        
         View.render();
         View.setStatus(`EXPLORING (${steps} CELLS)`, 'solving');
         View.updateStats({ steps, deadEnds, pathLen: null, elapsed: Date.now() - startTime });
@@ -264,8 +275,9 @@ const Controller = (() => {
 
       if (found) {
         for (const { r, c } of stack) {
-          const isSt = r === startR && c === startC;
-          const isEn = r === endR   && c === endC;
+          const isSt = r === Model.state.startR && c === Model.state.startC;
+          const isEn = r === Model.state.endR   && c === Model.state.endC;
+          const { grid } = Model.state;
           if (!isSt && !isEn) grid[r][c] = Model.S_PATH;
           View.render();
           await makeDelay(0.35);   // ~35 % of exploration speed

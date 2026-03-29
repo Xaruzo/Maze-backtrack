@@ -77,13 +77,16 @@ const Model = (() => {
         grid[r][c] = EMPTY;
         break;
       case 'start':
-        grid[startR][startC] = EMPTY;
+        // If we're mid-solve, moving the start point is a major change.
+        // The old cell should revert to EMPTY (or its search state if we were tracking it).
+        // For simplicity, we just set to EMPTY and let the controller handle it.
+        grid[state.startR][state.startC] = EMPTY;
         state.startR = r;
         state.startC = c;
         grid[r][c]   = S_START;
         break;
       case 'end':
-        grid[endR][endC] = EMPTY;
+        grid[state.endR][state.endC] = EMPTY;
         state.endR = r;
         state.endC = c;
         grid[r][c]   = S_END;
