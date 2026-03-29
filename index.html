@@ -75,6 +75,29 @@
       </div>
     </div>
 
+    <!-- ── LIVE STATS ── -->
+    <div class="panel" id="panel-stats">
+      <div class="panel-title">// STATS</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">CELLS</div>
+          <div class="stat-value" id="stat-steps">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">DEAD ENDS</div>
+          <div class="stat-value" id="stat-deadends">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">PATH LEN</div>
+          <div class="stat-value" id="stat-pathlen">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">TIME</div>
+          <div class="stat-value" id="stat-time">—</div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="panel-title">// LEGEND</div>
       <div class="legend">
@@ -98,6 +121,18 @@
           <div class="legend-swatch" style="background:#1a3a5c; border:1px solid #2a5a8c;"></div>
           WALL
         </div>
+      </div>
+    </div>
+
+    <!-- Keyboard shortcuts — desktop only -->
+    <div class="panel panel-keys">
+      <div class="panel-title">// KEYS</div>
+      <div class="keys-list">
+        <div class="key-item"><kbd>SPACE</kbd> Solve / Pause</div>
+        <div class="key-item"><kbd>R</kbd> Random maze</div>
+        <div class="key-item"><kbd>C</kbd> Clear grid</div>
+        <div class="key-item"><kbd>ESC</kbd> Cancel solve</div>
+        <div class="key-item"><kbd>1–4</kbd> Switch tool</div>
       </div>
     </div>
 

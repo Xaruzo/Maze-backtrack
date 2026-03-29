@@ -93,6 +93,60 @@ const View = (() => {
     }
   }
 
+  // ── Stats panel update ────────────────────────────────────────────
+  // stats: { steps, deadEnds, pathLen, elapsed }
+  //   pathLen === null  → still solving (show —)
+  //   pathLen === 0     → no path found (show ✗)
+  //   pathLen >  0      → found (show number)
+  function updateStats({ steps, deadEnds, pathLen, elapsed, solved = false }) {
+    const set = (id, text, cls = '') => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'stat-value' + (cls ? ' ' + cls : '');
+    };
+
+    // Mark stat items as "live" while solving
+    document.querySelectorAll('.stat-item').forEach(el => {
+      el.classList.toggle('live', Model.state.solving);
+    });
+
+    set('stat-steps',
+      steps != null ? String(steps) : '—',
+      solved ? 'success' : ''
+    );
+
+    set('stat-deadends',
+      deadEnds != null ? String(deadEnds) : '—'
+    );
+
+    if (pathLen === null) {
+      set('stat-pathlen', '—');
+    } else if (pathLen === 0) {
+      set('stat-pathlen', '✗', 'fail');
+    } else {
+      set('stat-pathlen', String(pathLen), 'success');
+    }
+
+    if (elapsed > 0) {
+      const display = elapsed >= 1000
+        ? (elapsed / 1000).toFixed(2) + 's'
+        : elapsed + 'ms';
+      set('stat-time', display, solved && pathLen > 0 ? 'success' : '');
+    } else {
+      set('stat-time', '—');
+    }
+  }
+
+  // ── Reset stats to initial dashes ────────────────────────────────
+  function resetStats() {
+    document.querySelectorAll('.stat-item').forEach(el => el.classList.remove('live'));
+    ['stat-steps', 'stat-deadends', 'stat-pathlen', 'stat-time'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.className = 'stat-value'; }
+    });
+  }
+
   // ── Active tool highlight ─────────────────────────────────────────
   function setActiveTool(t) {
     document.querySelectorAll('.tool-btn').forEach(b =>
@@ -106,14 +160,11 @@ const View = (() => {
   }
 
   // ── Lock / unlock controls during solve ───────────────────────────
-  // The speed slider and the ☰ TOOLS (drawer) button stay unlocked
-  // so the user can adjust speed and open the drawer mid-solve.
+  // Speed slider and ☰ TOOLS button stay unlocked mid-solve.
   function setControlsLocked(locked) {
     const ids = [
-      'btn-random', 'btn-clear',
       'gridsize',
       'tool-wall', 'tool-erase', 'tool-start', 'tool-end',
-      'mb-random',  'mb-clear',
     ];
 
     ids.forEach(id => {
@@ -123,8 +174,9 @@ const View = (() => {
       if (el.type === 'range') el.style.opacity = locked ? '0.35' : '1';
     });
 
-    // Ensure solve buttons are always enabled (they toggle to PAUSE)
-    ['btn-solve', 'mb-solve'].forEach(id => {
+    // Solve, Random, and Clear buttons should generally stay enabled
+    // so the user can pause or cancel the current operation.
+    ['btn-solve', 'mb-solve', 'btn-random', 'mb-random', 'btn-clear', 'mb-clear'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.disabled = false;
     });
@@ -134,11 +186,11 @@ const View = (() => {
   function setSolveButtonState(state) {
     const desktop = document.getElementById('btn-solve');
     const mobile  = document.getElementById('mb-solve');
-    
+
     const states = {
-      solve:  { text: '▶ SOLVE',  cls: 'btn-solve' },
-      pause:  { text: '⏸ PAUSE',  cls: 'btn-pause' },
-      resume: { text: '▶ RESUME', cls: 'btn-resume' }
+      solve:  { text: '▶ SOLVE',   cls: 'btn-solve'  },
+      pause:  { text: '⏸ PAUSE',   cls: 'btn-pause'  },
+      resume: { text: '▶ RESUME',  cls: 'btn-resume' },
     };
 
     const s = states[state];
@@ -147,7 +199,9 @@ const View = (() => {
     [desktop, mobile].forEach(btn => {
       if (!btn) return;
       btn.textContent = s.text;
-      btn.className = (btn === mobile) ? `mb-btn primary ${s.cls}` : `action-btn ${s.cls}`;
+      btn.className = (btn === mobile)
+        ? `mb-btn primary ${s.cls}`
+        : `action-btn ${s.cls}`;
     });
   }
 
@@ -186,6 +240,8 @@ const View = (() => {
     resizeCanvas,
     render,
     setStatus,
+    updateStats,
+    resetStats,
     setActiveTool,
     setControlsLocked,
     setSolveButtonState,
