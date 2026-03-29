@@ -70,6 +70,7 @@
       <div class="panel-title">// ACTIONS</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button class="action-btn btn-solve"  id="btn-solve"  onclick="solve()">▶ SOLVE</button>
+        <button class="action-btn btn-pause"  id="btn-pause"  onclick="togglePause()" style="display:none;">⏸ PAUSE</button>
         <button class="action-btn btn-random" id="btn-random" onclick="generateMaze()">⚡ RANDOM MAZE</button>
         <button class="action-btn btn-clear"  id="btn-clear"  onclick="clearGrid()">✕ CLEAR</button>
       </div>
@@ -126,6 +127,7 @@
 <!-- Mobile: fixed bottom action bar -->
 <div class="mobile-bar">
   <button class="mb-btn primary" id="mb-solve"  onclick="solve()">▶ SOLVE</button>
+  <button class="mb-btn primary" id="mb-pause"  onclick="togglePause()" style="display:none;">⏸ PAUSE</button>
   <button class="mb-btn"         id="mb-random" onclick="generateMaze()">⚡ RANDOM</button>
   <button class="mb-btn"         id="mb-clear"  onclick="clearGrid()">✕ CLEAR</button>
   <button class="mb-btn"         id="mb-menu"   onclick="toggleDrawer()">☰ TOOLS</button>

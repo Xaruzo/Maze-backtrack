@@ -20,7 +20,7 @@ const Controller = (() => {
 
   // ── Canvas pointer handling (mouse + touch) ───────────────────────
   function handlePointer(e, isDrag = false) {
-    if (Model.state.solving) return;
+    if (Model.state.solving && !Model.state.paused) return;
 
     const { r, c } = View.cellAt(e);
     const t = Model.state.tool;
@@ -67,24 +67,43 @@ const Controller = (() => {
 
   // ── Grid size slider ──────────────────────────────────────────────
   function onResize(n) {
-    if (Model.state.solving) return;
+    if (Model.state.solving && !Model.state.paused) return;
     Model.setSize(n);
     View.resizeCanvas();
+    if (Model.state.solving && Model.state.paused) {
+      // Re-initialize only if solving is paused to adjust to new grid
+      // But actually, changing grid size during solve is complex.
+      // We will allow it but it might restart the solve or show unexpected behavior.
+      // For simplicity, we'll just clear the solve state if resized.
+      Model.cleanSolveState();
+      Model.state.solving = false;
+      Model.state.paused = false;
+      View.setControlsLocked(false);
+      View.setPaused(false);
+    }
     generateMaze();
   }
 
   // ── Clear grid ────────────────────────────────────────────────────
   function clearGrid() {
-    if (Model.state.solving) return;
+    if (Model.state.solving && !Model.state.paused) return;
     Model.initGrid();
+    Model.state.solving = false;
+    Model.state.paused = false;
+    View.setControlsLocked(false);
+    View.setPaused(false);
     View.render();
     View.setStatus('READY — DRAW YOUR MAZE');
   }
 
   // ── Generate random maze ──────────────────────────────────────────
   function generateMaze() {
-    if (Model.state.solving) return;
+    if (Model.state.solving && !Model.state.paused) return;
     Model.generateMaze();
+    Model.state.solving = false;
+    Model.state.paused = false;
+    View.setControlsLocked(false);
+    View.setPaused(false);
     View.render();
     View.setStatus('RANDOM MAZE GENERATED — PRESS SOLVE');
   }
@@ -101,9 +120,16 @@ const Controller = (() => {
     View.setStatus('SCANNING...', 'solving');
 
     // Reads the speed slider live on every frame so mid-solve adjustments work
-    const delay = () => new Promise(res =>
-      setTimeout(res, +document.getElementById('speed').value)
-    );
+    const delay = () => new Promise(res => {
+      const checkPause = () => {
+        if (Model.state.paused) {
+          setTimeout(checkPause, 50); // check again in 50ms
+        } else {
+          setTimeout(res, +document.getElementById('speed').value);
+        }
+      };
+      checkPause();
+    });
 
     const { grid, ROWS, COLS } = Model.state;
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
@@ -156,6 +182,18 @@ const Controller = (() => {
 
     if (ok) View.setStatus(`✓ PATH FOUND IN ${steps} STEPS`, 'success');
     else    View.setStatus('✗ NO PATH EXISTS', 'fail');
+
+    // Reset paused state if solve finishes while paused
+    Model.state.paused = false;
+    View.setPaused(false);
+  }
+
+  // ── Toggle pause ─────────────────────────────────────────────────
+  function togglePause() {
+    if (!Model.state.solving) return;
+    Model.state.paused = !Model.state.paused;
+    View.setPaused(Model.state.paused);
+    View.setStatus(Model.state.paused ? 'PAUSED — YOU CAN EDIT THE GRID' : 'RESUMING...', 'solving');
   }
 
   // ── Window resize / orientation change ───────────────────────────
@@ -179,6 +217,7 @@ const Controller = (() => {
   window.clearGrid     = clearGrid;
   window.generateMaze  = generateMaze;
   window.solve         = solve;
+  window.togglePause   = togglePause;
   window.toggleDrawer  = View.toggleDrawer;
   window.closeDrawer   = View.closeDrawer;
 

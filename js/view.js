@@ -123,13 +123,59 @@ const View = (() => {
       if (el.type === 'range') el.style.opacity = locked ? '0.35' : '1';
     });
 
-    // Ensure solve buttons are re-enabled when unlocking
-    if (!locked) {
-      ['btn-solve', 'mb-solve'].forEach(id => {
+    // Handle pause button visibility and solve button hiding
+    const solveBtns = ['btn-solve', 'mb-solve'];
+    const pauseBtns = ['btn-pause', 'mb-pause'];
+
+    if (locked) {
+      solveBtns.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.disabled = false;
+        if (el) el.style.display = 'none';
+      });
+      pauseBtns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = 'block';
+          el.disabled = false;
+        }
+      });
+    } else {
+      solveBtns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = 'block';
+          el.disabled = false;
+        }
+      });
+      pauseBtns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
       });
     }
+  }
+
+  // ── Pause state UI ────────────────────────────────────────────────
+  function setPaused(paused) {
+    const pauseBtns = ['btn-pause', 'mb-pause'];
+    pauseBtns.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = paused ? '▶ RESUME' : '⏸ PAUSE';
+    });
+
+    // When paused, unlock grid size and other interfaces
+    const idsToUnlock = [
+      'gridsize',
+      'tool-wall', 'tool-erase', 'tool-start', 'tool-end',
+      'btn-random', 'btn-clear',
+      'mb-random', 'mb-clear'
+    ];
+
+    idsToUnlock.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.disabled = !paused;
+      if (el.type === 'range') el.style.opacity = paused ? '1' : '0.35';
+    });
   }
 
   // ── Hit-test: canvas pixel → grid cell ───────────────────────────
@@ -173,6 +219,7 @@ const View = (() => {
     openDrawer,
     closeDrawer,
     toggleDrawer,
+    setPaused,
   };
 
 })();
