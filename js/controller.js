@@ -14,24 +14,22 @@ const Controller = (() => {
   function setTool(t) {
     Model.state.tool = t;
     View.setActiveTool(t);
-    // Auto-close the mobile drawer after a tool is picked
     if (window.innerWidth <= 680) View.closeDrawer();
   }
 
   // ── Canvas pointer handling (mouse + touch) ───────────────────────
   function handlePointer(e, isDrag = false) {
+    // Allow drawing when paused (solve is suspended) but not while actively running
     if (Model.state.solving && !Model.state.paused) return;
 
     const { r, c } = View.cellAt(e);
     const t = Model.state.tool;
 
-    // Dragging only paints wall / erase, not start / end placement
     if (isDrag && t !== 'wall' && t !== 'erase') return;
 
     const changed = Model.applyTool(r, c);
     if (!changed) return;
 
-    // Snap back to wall after placing a start or end marker
     if (t === 'start' || t === 'end') {
       Model.state.tool = 'wall';
       View.setActiveTool('wall');
@@ -65,70 +63,131 @@ const Controller = (() => {
 
   View.canvas.addEventListener('touchend', () => { isMouseDown = false; });
 
+  // ── Cancel a running / paused solve ──────────────────────────────
+  // Sets the cancelled flag so the next delay() rejects, unwinding DFS.
+  function cancelSolve() {
+    if (!Model.state.solving) return;
+    Model.state.cancelled = true;
+    Model.state.paused    = false;   // unblock any waiting delay()
+  }
+
   // ── Grid size slider ──────────────────────────────────────────────
   function onResize(n) {
-    if (Model.state.solving && !Model.state.paused) return;
-    Model.setSize(n);
-    View.resizeCanvas();
-    if (Model.state.solving && Model.state.paused) {
-      // Re-initialize only if solving is paused to adjust to new grid
-      // But actually, changing grid size during solve is complex.
-      // We will allow it but it might restart the solve or show unexpected behavior.
-      // For simplicity, we'll just clear the solve state if resized.
-      Model.cleanSolveState();
-      Model.state.solving = false;
-      Model.state.paused = false;
+    // If solving, we MUST cancel it first.
+    if (Model.state.solving) cancelSolve();
+
+    // Debounce to ensure the cancel flag is picked up by the async DFS
+    // before we stomp on the grid state and start a new maze.
+    const doResize = () => {
+      // 1. Reset state
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+
+      // 2. Update UI
+      View.setSolveButtonState('solve');
       View.setControlsLocked(false);
-      View.setPaused(false);
+
+      // 3. Resize and Regenerate
+      Model.setSize(n);
+      View.resizeCanvas();
+      Model.generateMaze(); // Direct call to Model logic
+      View.render();
+      View.setStatus('GRID RESIZED — PRESS SOLVE');
+    };
+
+    if (Model.state.solving) {
+      setTimeout(doResize, 60);
+    } else {
+      doResize();
     }
-    generateMaze();
   }
 
   // ── Clear grid ────────────────────────────────────────────────────
   function clearGrid() {
-    if (Model.state.solving && !Model.state.paused) return;
-    Model.initGrid();
-    Model.state.solving = false;
-    Model.state.paused = false;
-    View.setControlsLocked(false);
-    View.setPaused(false);
-    View.render();
-    View.setStatus('READY — DRAW YOUR MAZE');
+    if (Model.state.solving) cancelSolve();
+    
+    const doClear = () => {
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+      View.setSolveButtonState('solve');
+      View.setControlsLocked(false);
+      Model.initGrid();
+      View.render();
+      View.setStatus('READY — DRAW YOUR MAZE');
+    };
+
+    if (Model.state.solving) setTimeout(doClear, 60);
+    else                     doClear();
   }
 
   // ── Generate random maze ──────────────────────────────────────────
   function generateMaze() {
-    if (Model.state.solving && !Model.state.paused) return;
-    Model.generateMaze();
-    Model.state.solving = false;
-    Model.state.paused = false;
-    View.setControlsLocked(false);
-    View.setPaused(false);
-    View.render();
-    View.setStatus('RANDOM MAZE GENERATED — PRESS SOLVE');
+    if (Model.state.solving) cancelSolve();
+
+    const doGen = () => {
+      Model.state.solving   = false;
+      Model.state.paused    = false;
+      Model.state.cancelled = false;
+      View.setSolveButtonState('solve');
+      View.setControlsLocked(false);
+      Model.generateMaze();
+      View.render();
+      View.setStatus('RANDOM MAZE GENERATED — PRESS SOLVE');
+    };
+
+    if (Model.state.solving) setTimeout(doGen, 60);
+    else                     doGen();
+  }
+
+  // ── Pause / Resume toggle ─────────────────────────────────────────
+  function pauseSolve() {
+    if (!Model.state.solving) return;
+
+    if (Model.state.paused) {
+      // ── Resume ──
+      Model.state.paused = false;
+      View.setSolveButtonState('pause');   // back to showing PAUSE
+      View.setControlsLocked(true);        // re-lock everything except speed
+      View.setStatus('RESUMING...', 'solving');
+    } else {
+      // ── Pause ──
+      Model.state.paused = true;
+      View.setSolveButtonState('resume');  // show RESUME
+      View.setControlsLocked(false);       // unlock all controls
+      View.setStatus('PAUSED — ADJUST OR RESUME', 'paused');
+    }
   }
 
   // ── Solve: async DFS backtracking ─────────────────────────────────
   async function solve() {
-    if (Model.state.solving) return;
+    // If already solving, we toggle pause/resume instead
+    if (Model.state.solving) {
+      pauseSolve();
+      return;
+    }
 
+    Model.state.cancelled = false;
+    Model.state.paused    = false;
     Model.cleanSolveState();
     View.render();
 
     Model.state.solving = true;
+    View.setSolveButtonState('pause');   // Solve button → PAUSE
     View.setControlsLocked(true);
     View.setStatus('SCANNING...', 'solving');
 
-    // Reads the speed slider live on every frame so mid-solve adjustments work
-    const delay = () => new Promise(res => {
-      const checkPause = () => {
-        if (Model.state.paused) {
-          setTimeout(checkPause, 50); // check again in 50ms
-        } else {
-          setTimeout(res, +document.getElementById('speed').value);
-        }
-      };
-      checkPause();
+    // delay() pauses mid-wait when state.paused is true,
+    // and rejects (throws) when state.cancelled is true.
+    const delay = () => new Promise(async (res, rej) => {
+      // Spin while paused
+      while (Model.state.paused) {
+        if (Model.state.cancelled) { rej(new Error('cancelled')); return; }
+        await new Promise(r => setTimeout(r, 50));
+      }
+      if (Model.state.cancelled) { rej(new Error('cancelled')); return; }
+      setTimeout(res, +document.getElementById('speed').value);
     });
 
     const { grid, ROWS, COLS } = Model.state;
@@ -149,19 +208,16 @@ const Controller = (() => {
 
       const { startR, startC, endR, endC } = Model.state;
 
-      // Reached the end
       if (r === endR && c === endC) { found = true; return true; }
 
       const isStart = (r === startR && c === startC);
       grid[r][c] = isStart ? Model.S_START : Model.S_VISITING;
       View.render();
       View.setStatus(`EXPLORING (${steps} steps)`, 'solving');
-      await delay();
+      await delay();   // ← throws if cancelled
 
-      // Recurse into each neighbour
       for (let d = 0; d < 4; d++) {
         if (await dfs(r + DR[d], c + DC[d])) {
-          // Tracing the successful path back up the call stack
           if (!isStart) grid[r][c] = Model.S_PATH;
           View.render();
           await delay();
@@ -169,31 +225,27 @@ const Controller = (() => {
         }
       }
 
-      // Dead end — backtrack
       if (!isStart) grid[r][c] = Model.S_DEAD;
       View.render();
       return false;
     }
 
-    const ok = await dfs(Model.state.startR, Model.state.startC);
+    let ok = false;
+    try {
+      ok = await dfs(Model.state.startR, Model.state.startC);
+    } catch (err) {
+      // Solve was cancelled — caller already reset state
+      return;
+    }
 
-    Model.state.solving = false;
+    Model.state.solving   = false;
+    Model.state.paused    = false;
+    Model.state.cancelled = false;
+    View.setSolveButtonState('solve');
     View.setControlsLocked(false);
 
     if (ok) View.setStatus(`✓ PATH FOUND IN ${steps} STEPS`, 'success');
     else    View.setStatus('✗ NO PATH EXISTS', 'fail');
-
-    // Reset paused state if solve finishes while paused
-    Model.state.paused = false;
-    View.setPaused(false);
-  }
-
-  // ── Toggle pause ─────────────────────────────────────────────────
-  function togglePause() {
-    if (!Model.state.solving) return;
-    Model.state.paused = !Model.state.paused;
-    View.setPaused(Model.state.paused);
-    View.setStatus(Model.state.paused ? 'PAUSED — YOU CAN EDIT THE GRID' : 'RESUMING...', 'solving');
   }
 
   // ── Window resize / orientation change ───────────────────────────
@@ -217,7 +269,7 @@ const Controller = (() => {
   window.clearGrid     = clearGrid;
   window.generateMaze  = generateMaze;
   window.solve         = solve;
-  window.togglePause   = togglePause;
+  window.pauseSolve    = pauseSolve;
   window.toggleDrawer  = View.toggleDrawer;
   window.closeDrawer   = View.closeDrawer;
 

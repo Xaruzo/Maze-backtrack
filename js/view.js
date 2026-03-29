@@ -110,10 +110,10 @@ const View = (() => {
   // so the user can adjust speed and open the drawer mid-solve.
   function setControlsLocked(locked) {
     const ids = [
-      'btn-solve', 'btn-random', 'btn-clear',
+      'btn-random', 'btn-clear',
       'gridsize',
       'tool-wall', 'tool-erase', 'tool-start', 'tool-end',
-      'mb-solve',  'mb-random',  'mb-clear',
+      'mb-random',  'mb-clear',
     ];
 
     ids.forEach(id => {
@@ -123,58 +123,31 @@ const View = (() => {
       if (el.type === 'range') el.style.opacity = locked ? '0.35' : '1';
     });
 
-    // Handle pause button visibility and solve button hiding
-    const solveBtns = ['btn-solve', 'mb-solve'];
-    const pauseBtns = ['btn-pause', 'mb-pause'];
-
-    if (locked) {
-      solveBtns.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      });
-      pauseBtns.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.style.display = 'block';
-          el.disabled = false;
-        }
-      });
-    } else {
-      solveBtns.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.style.display = 'block';
-          el.disabled = false;
-        }
-      });
-      pauseBtns.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      });
-    }
+    // Ensure solve buttons are always enabled (they toggle to PAUSE)
+    ['btn-solve', 'mb-solve'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = false;
+    });
   }
 
-  // ── Pause state UI ────────────────────────────────────────────────
-  function setPaused(paused) {
-    const pauseBtns = ['btn-pause', 'mb-pause'];
-    pauseBtns.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = paused ? '▶ RESUME' : '⏸ PAUSE';
-    });
+  // ── Solve button state toggle ─────────────────────────────────────
+  function setSolveButtonState(state) {
+    const desktop = document.getElementById('btn-solve');
+    const mobile  = document.getElementById('mb-solve');
+    
+    const states = {
+      solve:  { text: '▶ SOLVE',  cls: 'btn-solve' },
+      pause:  { text: '⏸ PAUSE',  cls: 'btn-pause' },
+      resume: { text: '▶ RESUME', cls: 'btn-resume' }
+    };
 
-    // When paused, unlock grid size and other interfaces
-    const idsToUnlock = [
-      'gridsize',
-      'tool-wall', 'tool-erase', 'tool-start', 'tool-end',
-      'btn-random', 'btn-clear',
-      'mb-random', 'mb-clear'
-    ];
+    const s = states[state];
+    if (!s) return;
 
-    idsToUnlock.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.disabled = !paused;
-      if (el.type === 'range') el.style.opacity = paused ? '1' : '0.35';
+    [desktop, mobile].forEach(btn => {
+      if (!btn) return;
+      btn.textContent = s.text;
+      btn.className = (btn === mobile) ? `mb-btn primary ${s.cls}` : `action-btn ${s.cls}`;
     });
   }
 
@@ -215,11 +188,11 @@ const View = (() => {
     setStatus,
     setActiveTool,
     setControlsLocked,
+    setSolveButtonState,
     cellAt,
     openDrawer,
     closeDrawer,
     toggleDrawer,
-    setPaused,
   };
 
 })();

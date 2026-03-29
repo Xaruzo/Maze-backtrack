@@ -213,6 +213,20 @@ input[type=range] {
 .btn-solve:hover { box-shadow: 0 0 32px rgba(0,195,255,0.6); transform: translateY(-1px); }
 .btn-solve:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
+.btn-pause {
+  background: #f39c12; /* Orange for pause */
+  color: var(--bg);
+  box-shadow: 0 0 20px rgba(243, 156, 18, 0.35);
+}
+.btn-pause:hover { box-shadow: 0 0 32px rgba(243, 156, 18, 0.6); transform: translateY(-1px); }
+
+.btn-resume {
+  background: #27ae60; /* Green for resume */
+  color: var(--bg);
+  box-shadow: 0 0 20px rgba(39, 174, 96, 0.35);
+}
+.btn-resume:hover { box-shadow: 0 0 32px rgba(39, 174, 96, 0.6); transform: translateY(-1px); }
+
 .btn-clear {
   background: transparent;
   color: var(--dim);

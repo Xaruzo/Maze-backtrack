@@ -28,7 +28,6 @@ const Model = (() => {
     endC:    18,
     tool:    'wall',
     solving: false,
-    paused:  false,
   };
 
   // ── Grid initialisation ───────────────────────────────────────────

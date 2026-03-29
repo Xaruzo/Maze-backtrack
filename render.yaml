@@ -1,5 +1,0 @@
-services:
-  - type: static
-    name: maze-backtrack
-    buildCommand: ""
-    publishPath: "."
