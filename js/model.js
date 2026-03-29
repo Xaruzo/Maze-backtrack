@@ -32,6 +32,7 @@ const Model = (() => {
 
   // ── Grid initialisation ───────────────────────────────────────────
   function initGrid() {
+    state.solving = false;
     state.grid = Array.from(
       { length: state.ROWS },
       () => new Array(state.COLS).fill(EMPTY)

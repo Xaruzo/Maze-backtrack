@@ -368,6 +368,7 @@ const Controller = (() => {
     Model.setSize(20);
     View.resizeCanvas();
     generateMaze();
+    View.render();
   }
 
   // ── Expose commands to HTML onclick / oninput attributes ─────────
